@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using Microsoft.Xna.Framework;
+using ModFramework;
 using OTAPI;
 
 namespace TerrariaApi.Server.Hooking
@@ -15,24 +17,33 @@ namespace TerrariaApi.Server.Hooking
 		{
 			_hookManager = hookManager;
 
-			Hooks.Game.PreUpdate = OnPreUpdate;
-			Hooks.Game.PostUpdate = OnPostUpdate;
-			Hooks.World.HardmodeTileUpdate = OnHardmodeTileUpdate;
-			Hooks.Game.PreInitialize = OnPreInitialize;
-			Hooks.Game.Started = OnStarted;
-			Hooks.World.Statue = OnStatue;
+			On.Terraria.Main.Update += OnUpdate;
+			On.Terraria.Main.Initialize += OnInitialize;
+			On.Terraria.Netplay.StartServer += OnStartServer;
+
+			Hooks.WorldGen.HardmodeTilePlace = OnHardmodeTilePlace;
+			Hooks.WorldGen.HardmodeTileUpdate = OnHardmodeTileUpdate;
+			Hooks.Item.MechSpawn = OnItemMechSpawn;
+			Hooks.NPC.MechSpawn = OnNpcMechSpawn;
 		}
 
-		static void OnPreUpdate(ref GameTime gameTime)
+		private static void OnUpdate(On.Terraria.Main.orig_Update orig, Terraria.Main self, GameTime gameTime)
 		{
 			_hookManager.InvokeGameUpdate();
-		}
-
-		static void OnPostUpdate(ref GameTime gameTime)
-		{
+			orig(self, gameTime);
 			_hookManager.InvokeGamePostUpdate();
 		}
-		static HardmodeTileUpdateResult OnHardmodeTileUpdate(int x, int y, ref ushort type)
+
+		static HookResult OnHardmodeTileUpdate(int x, int y, ushort type)
+		{
+			if (_hookManager.InvokeGameHardmodeTileUpdate(x, y, type))
+			{
+				return HookResult.Cancel;
+			}
+			return HookResult.Continue;
+		}
+
+		static HardmodeTileUpdateResult OnHardmodeTilePlace(ref int x, ref int y, ref int type, ref bool mute, ref bool forced, ref int plr, ref int style)
 		{
 			if (_hookManager.InvokeGameHardmodeTileUpdate(x, y, type))
 			{
@@ -41,20 +52,40 @@ namespace TerrariaApi.Server.Hooking
 			return HardmodeTileUpdateResult.Continue;
 		}
 
-		static void OnPreInitialize()
+		private static void OnInitialize(On.Terraria.Main.orig_Initialize orig, Terraria.Main self)
 		{
 			HookManager.InitialiseAPI();
 			_hookManager.InvokeGameInitialize();
+			orig(self);
 		}
 
-		static void OnStarted()
+		private static void OnStartServer(On.Terraria.Netplay.orig_StartServer orig)
 		{
 			_hookManager.InvokeGamePostInitialize();
+			orig();
 		}
 
-		static HookResult OnStatue(StatueType caller, float x, float y, int type, ref int num, ref int num2, ref int num3)
+		static HookResult OnStarted(HookEvent @event, Action originalMethod)
 		{
-			if (_hookManager.InvokeGameStatueSpawn(num2, num3, num, (int)(x / 16f), (int)(y / 16f), type, caller == StatueType.Npc))
+			if (@event == HookEvent.Before)
+			{
+				_hookManager.InvokeGamePostInitialize();
+			}
+			return HookResult.Continue;
+		}
+
+		static HookResult OnItemMechSpawn(float x, float y, int type, int num, int num2, int num3)
+		{
+			if (_hookManager.InvokeGameStatueSpawn(num2, num3, num, (int)(x / 16f), (int)(y / 16f), type, false))
+			{
+				return HookResult.Continue;
+			}
+			return HookResult.Cancel;
+		}
+
+		static HookResult OnNpcMechSpawn(float x, float y, int type, int num, int num2, int num3)
+		{
+			if (_hookManager.InvokeGameStatueSpawn(num2, num3, num, (int)(x / 16f), (int)(y / 16f), type, true))
 			{
 				return HookResult.Continue;
 			}

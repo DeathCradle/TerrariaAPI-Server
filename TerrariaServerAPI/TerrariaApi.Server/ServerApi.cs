@@ -78,7 +78,6 @@ namespace TerrariaApi.Server
 
 		internal static void Initialize(string[] commandLineArgs, Main game)
 		{
-
 			Profiler.BeginMeasureServerInitTime();
 			ServerApi.LogWriter.ServerWriteLine(
 				string.Format("TerrariaApi - Server v{0} started.", ApiVersion), TraceLevel.Verbose);

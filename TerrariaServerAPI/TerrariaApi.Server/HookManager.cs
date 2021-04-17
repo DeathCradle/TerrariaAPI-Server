@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Terraria;
@@ -22,7 +23,7 @@ namespace TerrariaApi.Server
 					ServerApi.ApiVersion,
 					Main.versionNumber2,
 					Main.curRelease,
-					typeof(OTAPI.Hooks).Assembly.GetName().Version
+					typeof(OTAPI.Hooks).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion
 				);
 				ServerApi.Initialize(Environment.GetCommandLineArgs(), Main.instance);
 			}
@@ -41,7 +42,7 @@ namespace TerrariaApi.Server
 			if (args.Any(x => x == "-heaptile"))
 			{
 				ServerApi.LogWriter.ServerWriteLine($"Using {nameof(HeapTile)} for tile implementation", TraceLevel.Info);
-				OTAPI.Hooks.Tile.CreateCollection = () =>
+				ModFramework.DefaultCollection<ITile>.OnCreateCollection += (int x, int y, string source) =>
 				{
 					return new TileProvider();
 				};

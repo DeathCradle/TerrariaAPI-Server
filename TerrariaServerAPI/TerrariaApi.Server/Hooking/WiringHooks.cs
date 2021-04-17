@@ -1,4 +1,5 @@
-﻿using OTAPI;
+﻿using ModFramework;
+using OTAPI;
 using Terraria;
 
 namespace TerrariaApi.Server.Hooking

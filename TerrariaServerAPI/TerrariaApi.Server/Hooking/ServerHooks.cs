@@ -1,6 +1,7 @@
 ﻿using OTAPI;
 using System;
 using Terraria;
+using ModFramework;
 
 namespace TerrariaApi.Server.Hooking
 {
@@ -16,20 +17,34 @@ namespace TerrariaApi.Server.Hooking
 		{
 			_hookManager = hookManager;
 
-			Hooks.Command.StartCommandThread = OnStartCommandThread;
-			Hooks.Command.Process = OnProcess;
-			Hooks.Net.RemoteClient.PreReset = OnPreReset;
+			On.Terraria.Main.startDedInput += Main_startDedInput;
+			On.Terraria.RemoteClient.Reset += RemoteClient_Reset;
+			Hooks.Main.CommandProcess = OnProcess;
 		}
 
-		static HookResult OnStartCommandThread()
+		private static void RemoteClient_Reset(On.Terraria.RemoteClient.orig_Reset orig, RemoteClient self)
+		{
+			if (!Netplay.Disconnect)
+			{
+				if (self.IsActive)
+				{
+					_hookManager.InvokeServerLeave(self.Id);
+				}
+				_hookManager.InvokeServerSocketReset(self);
+			}
+
+			orig(self);
+		}
+
+		private static void Main_startDedInput(On.Terraria.Main.orig_startDedInput orig)
 		{
 			if (Console.IsInputRedirected == true)
 			{
 				Console.WriteLine("TerrariaServer is running in the background and input is disabled.");
-				return HookResult.Cancel;
+				return;
 			}
 
-			return HookResult.Continue;
+			orig();
 		}
 
 		static HookResult OnProcess(string lowered, string raw)
@@ -37,19 +52,6 @@ namespace TerrariaApi.Server.Hooking
 			if (_hookManager.InvokeServerCommand(raw))
 			{
 				return HookResult.Cancel;
-			}
-			return HookResult.Continue;
-		}
-
-		static HookResult OnPreReset(Terraria.RemoteClient remoteClient)
-		{
-			if (!Netplay.Disconnect)
-			{
-				if (remoteClient.IsActive)
-				{
-					_hookManager.InvokeServerLeave(remoteClient.Id);
-				}
-				_hookManager.InvokeServerSocketReset(remoteClient);
 			}
 			return HookResult.Continue;
 		}

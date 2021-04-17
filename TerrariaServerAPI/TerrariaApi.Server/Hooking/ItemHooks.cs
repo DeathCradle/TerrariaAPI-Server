@@ -1,4 +1,6 @@
-﻿using OTAPI;
+﻿using System;
+using ModFramework;
+using OTAPI;
 using Terraria;
 
 namespace TerrariaApi.Server.Hooking
@@ -15,27 +17,26 @@ namespace TerrariaApi.Server.Hooking
 		{
 			_hookManager = hookManager;
 
-			Hooks.Item.PreSetDefaultsById = OnPreSetDefaultsById;
-			Hooks.Item.PreNetDefaults = OnPreNetDefaults;
+			On.Terraria.Item.SetDefaults_int_bool += OnSetDefaults;
+			On.Terraria.Item.netDefaults += OnNetDefaults;
+
 			Hooks.Chest.QuickStack = OnQuickStack;
 		}
 
-		static HookResult OnPreSetDefaultsById(Item item, ref int type, ref bool noMatCheck)
+		private static void OnNetDefaults(On.Terraria.Item.orig_netDefaults orig, Item self, int type)
 		{
-			if (_hookManager.InvokeItemSetDefaultsInt(ref type, item))
-			{
-				return HookResult.Cancel;
-			}
-			return HookResult.Continue;
+			if (_hookManager.InvokeItemNetDefaults(ref type, self))
+				return;
+
+			orig(self, type);
 		}
 
-		static HookResult OnPreNetDefaults(Item item, ref int type)
+		private static void OnSetDefaults(On.Terraria.Item.orig_SetDefaults_int_bool orig, Item self, int Type, bool noMatCheck)
 		{
-			if (_hookManager.InvokeItemNetDefaults(ref type, item))
-			{
-				return HookResult.Cancel;
-			}
-			return HookResult.Continue;
+			if (_hookManager.InvokeItemSetDefaultsInt(ref Type, self))
+				return;
+
+			orig(self, Type, noMatCheck);
 		}
 
 		static HookResult OnQuickStack(int playerId, Item item, int chestIndex)

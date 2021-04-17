@@ -117,6 +117,7 @@ namespace TerrariaApi.Server
 		private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
 		{
 			Console.WriteLine($"Unhandled exception\n{e}");
+			Console.WriteLine(e.ExceptionObject);
 		}
 
 
