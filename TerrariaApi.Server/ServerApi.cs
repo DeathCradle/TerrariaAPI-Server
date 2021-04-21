@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Linq;
 using Terraria;
 using TerrariaApi.Reporting;
+using System.Runtime.Loader;
 
 namespace TerrariaApi.Server
 {
@@ -272,7 +273,23 @@ namespace TerrariaApi.Server
 					{
 						try
 						{
-							assembly = Assembly.Load(File.ReadAllBytes(fileInfo.FullName));
+							//assembly = Assembly.Load(File.ReadAllBytes(fileInfo.FullName));
+
+
+							// try and resolve deps using <plugin>.deps.json exists
+							var path = fileInfo.FullName;
+							var resolver = new AssemblyDependencyResolver(path);
+
+							AssemblyLoadContext.Default.Resolving += (AssemblyLoadContext arg1, AssemblyName arg2) =>
+							{
+								string assemblyPath = resolver.ResolveAssemblyToPath(arg2);
+								if (assemblyPath != null)
+									return AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+
+								return null;
+							};
+
+							assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
 						}
 						catch (BadImageFormatException)
 						{
