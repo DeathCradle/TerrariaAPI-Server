@@ -65,15 +65,6 @@ namespace TerrariaApi.Server.Hooking
 			orig();
 		}
 
-		static HookResult OnStarted(HookEvent @event, Action originalMethod)
-		{
-			if (@event == HookEvent.Before)
-			{
-				_hookManager.InvokeGamePostInitialize();
-			}
-			return HookResult.Continue;
-		}
-
 		static HookResult OnItemMechSpawn(float x, float y, int type, int num, int num2, int num3)
 		{
 			if (_hookManager.InvokeGameStatueSpawn(num2, num3, num, (int)(x / 16f), (int)(y / 16f), type, false))
