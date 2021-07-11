@@ -1,8 +1,6 @@
-﻿using System;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using OTAPI;
 using Terraria;
-using ModFramework;
 
 namespace TerrariaApi.Server.Hooking
 {
@@ -24,18 +22,18 @@ namespace TerrariaApi.Server.Hooking
 			On.Terraria.NPC.Transform += OnTransform;
 			On.Terraria.NPC.AI += OnAI;
 
-			Hooks.NPC.Spawn = OnSpawn;
-			Hooks.NPC.DropLoot = OnDropLoot;
-			Hooks.NPC.BossBag = OnBossBagItem;
-			Hooks.NPC.Killed = OnKilled;
+			Hooks.NPC.Spawn += OnSpawn;
+			Hooks.NPC.DropLoot += OnDropLoot;
+			Hooks.NPC.BossBag += OnBossBagItem;
+			Hooks.NPC.Killed += OnKilled;
 		}
 
-		private static void OnKilled(NPC npc)
+		static void OnKilled(object sender, Hooks.NPC.KilledEventArgs e)
 		{
-			_hookManager.InvokeNpcKilled(npc);
+			_hookManager.InvokeNpcKilled(e.npc);
 		}
 
-		private static void OnSetDefaultsById(On.Terraria.NPC.orig_SetDefaults orig, NPC self, int Type, NPCSpawnParams spawnparams)
+		static void OnSetDefaultsById(On.Terraria.NPC.orig_SetDefaults orig, NPC self, int Type, NPCSpawnParams spawnparams)
 		{
 			if (_hookManager.InvokeNpcSetDefaultsInt(ref Type, self))
 				return;
@@ -43,7 +41,7 @@ namespace TerrariaApi.Server.Hooking
 			orig(self, Type, spawnparams);
 		}
 
-		private static void OnSetDefaultsFromNetId(On.Terraria.NPC.orig_SetDefaultsFromNetId orig, NPC self, int id, NPCSpawnParams spawnparams)
+		static void OnSetDefaultsFromNetId(On.Terraria.NPC.orig_SetDefaultsFromNetId orig, NPC self, int id, NPCSpawnParams spawnparams)
 		{
 			if (_hookManager.InvokeNpcNetDefaults(ref id, self))
 				return;
@@ -51,7 +49,7 @@ namespace TerrariaApi.Server.Hooking
 			orig(self, id, spawnparams);
 		}
 
-		private static double OnStrike(On.Terraria.NPC.orig_StrikeNPC orig, NPC self, int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, Entity entity)
+		static double OnStrike(On.Terraria.NPC.orig_StrikeNPC orig, NPC self, int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, Entity entity)
 		{
 			if (entity is Player player)
 			{
@@ -64,7 +62,7 @@ namespace TerrariaApi.Server.Hooking
 			return orig(self, Damage, knockBack, hitDirection, crit, noEffect, fromNet, entity);
 		}
 
-		private static void OnTransform(On.Terraria.NPC.orig_Transform orig, NPC self, int newType)
+		static void OnTransform(On.Terraria.NPC.orig_Transform orig, NPC self, int newType)
 		{
 			if (_hookManager.InvokeNpcTransformation(self.whoAmI))
 				return;
@@ -72,22 +70,30 @@ namespace TerrariaApi.Server.Hooking
 			orig(self, newType);
 		}
 
-		static HookResult OnSpawn(ref int index)
+		static void OnSpawn(object sender, Hooks.NPC.SpawnEventArgs e)
 		{
+			var index = e.index;
 			if (_hookManager.InvokeNpcSpawn(ref index))
-				return HookResult.Cancel;
-
-			return HookResult.Continue;
+			{
+				e.Result = HookResult.Cancel;
+				e.index = index;
+			}
 		}
 
-		static HookResult OnDropLoot(
-			HookEvent @event, Terraria.NPC instance, ref int itemIndex,
-			ref int X, ref int Y, ref int Width, ref int Height, ref int Type,
-			ref int Stack, ref bool noBroadcast, ref int pfix, ref bool noGrabDelay, ref bool reverseLookup)
+		static void OnDropLoot(object sender, Hooks.NPC.DropLootEventArgs e)
 		{
-			if (@event == HookEvent.Before)
+			if (e.Event == HookEvent.Before)
 			{
-				var position = new Vector2(X, Y);
+				var Width = e.Width;
+				var Height = e.Height;
+				var Type = e.Type;
+				var Stack = e.Stack;
+				var noBroadcast = e.noBroadcast;
+				var pfix = e.pfix;
+				var noGrabDelay = e.noGrabDelay;
+				var reverseLookup = e.reverseLookup;
+
+				var position = new Vector2(e.X, e.Y);
 				if (_hookManager.InvokeNpcLootDrop
 				(
 					ref position,
@@ -97,38 +103,43 @@ namespace TerrariaApi.Server.Hooking
 					ref Stack,
 					ref noBroadcast,
 					ref pfix,
-					instance.type,
-					instance.whoAmI,
+					e.npc.type,
+					e.npc.whoAmI,
 					ref noGrabDelay,
 					ref reverseLookup
 				))
 				{
-					X = (int)position.X;
-					Y = (int)position.Y;
-					return HookResult.Cancel;
+					e.X = (int)position.X;
+					e.Y = (int)position.Y;
+					e.Result = HookResult.Cancel;
 				}
-				X = (int)position.X;
-				Y = (int)position.Y;
+				e.X = (int)position.X;
+				e.Y = (int)position.Y;
+
+				e.Width = Width;
+				e.Height = Height;
+				e.Type = Type;
+				e.Stack = Stack;
+				e.noBroadcast = noBroadcast;
+				e.pfix = pfix;
+				e.noGrabDelay = noGrabDelay;
+				e.reverseLookup = reverseLookup;
 			}
 
-			return HookResult.Continue;
 		}
 
-		static HookResult OnBossBagItem(
-				NPC npc,
-				ref int X,
-				ref int Y,
-				ref int Width,
-				ref int Height,
-				ref int Type,
-				ref int Stack,
-				ref bool noBroadcast,
-				ref int pfix,
-				ref bool noGrabDelay,
-				ref bool reverseLookup
-			)
+		static void OnBossBagItem(object sender, Hooks.NPC.BossBagEventArgs e)
 		{
-			var positon = new Vector2(X, Y);
+			var Width = e.Width;
+			var Height = e.Height;
+			var Type = e.Type;
+			var Stack = e.Stack;
+			var noBroadcast = e.noBroadcast;
+			var pfix = e.pfix;
+			var noGrabDelay = e.noGrabDelay;
+			var reverseLookup = e.reverseLookup;
+
+			var positon = new Vector2(e.X, e.Y);
 			if (_hookManager.InvokeDropBossBag
 			(
 				ref positon,
@@ -138,18 +149,26 @@ namespace TerrariaApi.Server.Hooking
 				ref Stack,
 				ref noBroadcast,
 				ref pfix,
-				npc.type,
-				npc.whoAmI,
+				e.npc.type,
+				e.npc.whoAmI,
 				ref noGrabDelay,
 				ref reverseLookup
 			))
 			{
-				return HookResult.Cancel;
+				e.Result = HookResult.Cancel;
 			}
-			return HookResult.Continue;
+
+			e.Width = Width;
+			e.Height = Height;
+			e.Type = Type;
+			e.Stack = Stack;
+			e.noBroadcast = noBroadcast;
+			e.pfix = pfix;
+			e.noGrabDelay = noGrabDelay;
+			e.reverseLookup = reverseLookup;
 		}
 
-		private static void OnAI(On.Terraria.NPC.orig_AI orig, NPC self)
+		static void OnAI(On.Terraria.NPC.orig_AI orig, NPC self)
 		{
 			if (_hookManager.InvokeNpcAIUpdate(self))
 				return;

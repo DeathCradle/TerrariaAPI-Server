@@ -1,5 +1,4 @@
-﻿using ModFramework;
-using OTAPI;
+﻿using OTAPI;
 using Terraria;
 
 namespace TerrariaApi.Server.Hooking
@@ -16,16 +15,15 @@ namespace TerrariaApi.Server.Hooking
 		{
 			_hookManager = hookManager;
 
-			Hooks.Wiring.AnnouncementBox = OnAnnouncementBox;
+			Hooks.Wiring.AnnouncementBox += OnAnnouncementBox;
 		}
 
-		static HookResult OnAnnouncementBox(int x, int y, int signId)
+		static void OnAnnouncementBox(object sender, Hooks.Wiring.AnnouncementBoxEventArgs e)
 		{
-			if (_hookManager.InvokeWireTriggerAnnouncementBox(Wiring.CurrentUser, x, y, signId, Main.sign[signId].text))
+			if (_hookManager.InvokeWireTriggerAnnouncementBox(Wiring.CurrentUser, e.x, e.y, e.signId, Main.sign[e.signId].text))
 			{
-				return HookResult.Cancel;
+				e.Result = HookResult.Cancel;
 			}
-			return HookResult.Continue;
 		}
 	}
 }

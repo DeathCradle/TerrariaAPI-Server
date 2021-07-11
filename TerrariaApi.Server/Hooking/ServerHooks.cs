@@ -1,7 +1,6 @@
-﻿using OTAPI;
-using System;
+﻿using System;
+using OTAPI;
 using Terraria;
-using ModFramework;
 
 namespace TerrariaApi.Server.Hooking
 {
@@ -19,10 +18,10 @@ namespace TerrariaApi.Server.Hooking
 
 			On.Terraria.Main.startDedInput += Main_startDedInput;
 			On.Terraria.RemoteClient.Reset += RemoteClient_Reset;
-			Hooks.Main.CommandProcess = OnProcess;
+			Hooks.Main.CommandProcess += OnProcess;
 		}
 
-		private static void RemoteClient_Reset(On.Terraria.RemoteClient.orig_Reset orig, RemoteClient self)
+		static void RemoteClient_Reset(On.Terraria.RemoteClient.orig_Reset orig, RemoteClient self)
 		{
 			if (!Netplay.Disconnect)
 			{
@@ -36,7 +35,7 @@ namespace TerrariaApi.Server.Hooking
 			orig(self);
 		}
 
-		private static void Main_startDedInput(On.Terraria.Main.orig_startDedInput orig)
+		static void Main_startDedInput(On.Terraria.Main.orig_startDedInput orig)
 		{
 			if (Console.IsInputRedirected == true)
 			{
@@ -47,13 +46,12 @@ namespace TerrariaApi.Server.Hooking
 			orig();
 		}
 
-		static HookResult OnProcess(string lowered, string raw)
+		static void OnProcess(object sender, Hooks.Main.CommandProcessEventArgs e)
 		{
-			if (_hookManager.InvokeServerCommand(raw))
+			if (_hookManager.InvokeServerCommand(e.command))
 			{
-				return HookResult.Cancel;
+				e.Result = HookResult.Cancel;
 			}
-			return HookResult.Continue;
 		}
 	}
 }

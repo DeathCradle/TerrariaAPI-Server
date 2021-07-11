@@ -1,6 +1,4 @@
-﻿using System;
-using Microsoft.Xna.Framework;
-using ModFramework;
+﻿using Microsoft.Xna.Framework;
 using OTAPI;
 
 namespace TerrariaApi.Server.Hooking
@@ -21,10 +19,10 @@ namespace TerrariaApi.Server.Hooking
 			On.Terraria.Main.Initialize += OnInitialize;
 			On.Terraria.Netplay.StartServer += OnStartServer;
 
-			Hooks.WorldGen.HardmodeTilePlace = OnHardmodeTilePlace;
-			Hooks.WorldGen.HardmodeTileUpdate = OnHardmodeTileUpdate;
-			Hooks.Item.MechSpawn = OnItemMechSpawn;
-			Hooks.NPC.MechSpawn = OnNpcMechSpawn;
+			Hooks.WorldGen.HardmodeTilePlace += OnHardmodeTilePlace;
+			Hooks.WorldGen.HardmodeTileUpdate += OnHardmodeTileUpdate;
+			Hooks.Item.MechSpawn += OnItemMechSpawn;
+			Hooks.NPC.MechSpawn += OnNpcMechSpawn;
 		}
 
 		private static void OnUpdate(On.Terraria.Main.orig_Update orig, Terraria.Main self, GameTime gameTime)
@@ -34,22 +32,20 @@ namespace TerrariaApi.Server.Hooking
 			_hookManager.InvokeGamePostUpdate();
 		}
 
-		static HookResult OnHardmodeTileUpdate(int x, int y, ushort type)
+		private static void OnHardmodeTileUpdate(object sender, Hooks.WorldGen.HardmodeTileUpdateEventArgs e)
 		{
-			if (_hookManager.InvokeGameHardmodeTileUpdate(x, y, type))
+			if (_hookManager.InvokeGameHardmodeTileUpdate(e.x, e.y, e.type))
 			{
-				return HookResult.Cancel;
+				e.Result = HookResult.Cancel;
 			}
-			return HookResult.Continue;
 		}
 
-		static HardmodeTileUpdateResult OnHardmodeTilePlace(ref int x, ref int y, ref int type, ref bool mute, ref bool forced, ref int plr, ref int style)
+		private static void OnHardmodeTilePlace(object sender, Hooks.WorldGen.HardmodeTilePlaceEventArgs e)
 		{
-			if (_hookManager.InvokeGameHardmodeTileUpdate(x, y, type))
+			if (_hookManager.InvokeGameHardmodeTileUpdate(e.x, e.y, e.type))
 			{
-				return HardmodeTileUpdateResult.Cancel;
+				e.Result = HardmodeTileUpdateResult.Cancel;
 			}
-			return HardmodeTileUpdateResult.Continue;
 		}
 
 		private static void OnInitialize(On.Terraria.Main.orig_Initialize orig, Terraria.Main self)
@@ -65,22 +61,22 @@ namespace TerrariaApi.Server.Hooking
 			orig();
 		}
 
-		static HookResult OnItemMechSpawn(float x, float y, int type, int num, int num2, int num3)
+
+		private static void OnItemMechSpawn(object sender, Hooks.Item.MechSpawnEventArgs e)
 		{
-			if (_hookManager.InvokeGameStatueSpawn(num2, num3, num, (int)(x / 16f), (int)(y / 16f), type, false))
+			if (!_hookManager.InvokeGameStatueSpawn(e.num2, e.num3, e.num, (int)(e.x / 16f), (int)(e.y / 16f), e.type, false))
 			{
-				return HookResult.Continue;
+				e.Result = HookResult.Cancel;
 			}
-			return HookResult.Cancel;
 		}
 
-		static HookResult OnNpcMechSpawn(float x, float y, int type, int num, int num2, int num3)
+
+		private static void OnNpcMechSpawn(object sender, Hooks.NPC.MechSpawnEventArgs e)
 		{
-			if (_hookManager.InvokeGameStatueSpawn(num2, num3, num, (int)(x / 16f), (int)(y / 16f), type, true))
+			if (!_hookManager.InvokeGameStatueSpawn(e.num2, e.num3, e.num, (int)(e.x / 16f), (int)(e.y / 16f), e.type, true))
 			{
-				return HookResult.Continue;
+				e.Result = HookResult.Cancel;
 			}
-			return HookResult.Cancel;
 		}
 	}
 }

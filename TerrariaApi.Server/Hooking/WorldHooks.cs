@@ -22,29 +22,27 @@ namespace TerrariaApi.Server.Hooking
 			On.Terraria.Main.checkXMas += Main_checkXMas;
 			On.Terraria.Main.checkHalloween += Main_checkHalloween;
 
-			Hooks.Collision.PressurePlate = OnPressurePlate;
-			Hooks.WorldGen.Meteor = OnDropMeteor;
+			Hooks.Collision.PressurePlate += OnPressurePlate;
+			Hooks.WorldGen.Meteor += OnDropMeteor;
 		}
 
-		static HookResult OnPressurePlate(int x, int y, Entity entity)
+		static void OnPressurePlate(object sender, Hooks.Collision.PressurePlateEventArgs e)
 		{
-			if (entity is NPC npc)
+			if (e.Entity is NPC npc)
 			{
-				if (_hookManager.InvokeNpcTriggerPressurePlate(npc, x, y))
-					return HookResult.Cancel;
+				if (_hookManager.InvokeNpcTriggerPressurePlate(npc, e.X, e.Y))
+					e.Result = HookResult.Cancel;
 			}
-			else if (entity is Player player)
+			else if (e.Entity is Player player)
 			{
-				if (_hookManager.InvokePlayerTriggerPressurePlate(player, x, y))
-					return HookResult.Cancel;
+				if (_hookManager.InvokePlayerTriggerPressurePlate(player, e.X, e.Y))
+					e.Result = HookResult.Cancel;
 			}
-			else if (entity is Projectile projectile)
+			else if (e.Entity is Projectile projectile)
 			{
-				if (_hookManager.InvokeProjectileTriggerPressurePlate(projectile, x, y))
-					return HookResult.Cancel;
+				if (_hookManager.InvokeProjectileTriggerPressurePlate(projectile, e.X, e.Y))
+					e.Result = HookResult.Cancel;
 			}
-
-			return HookResult.Continue;
 		}
 
 		static void WorldFile_SaveWorld(On.Terraria.IO.WorldFile.orig_SaveWorld_bool_bool orig, bool useCloudSaving, bool resetTime)
@@ -63,13 +61,12 @@ namespace TerrariaApi.Server.Hooking
 			orig();
 		}
 
-		static HookResult OnDropMeteor(ref int x, ref int y)
+		static void OnDropMeteor(object sender, Hooks.WorldGen.MeteorEventArgs e)
 		{
-			if (_hookManager.InvokeWorldMeteorDrop(x, y))
+			if (_hookManager.InvokeWorldMeteorDrop(e.x, e.y))
 			{
-				return HookResult.Cancel;
+				e.Result = HookResult.Cancel;
 			}
-			return HookResult.Continue;
 		}
 
 		private static void Main_checkXMas(On.Terraria.Main.orig_checkXMas orig)

@@ -1,5 +1,4 @@
-﻿using OTAPI;
-using Terraria;
+﻿using Terraria;
 
 namespace TerrariaApi.Server.Hooking
 {
